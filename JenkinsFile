@@ -1,0 +1,25 @@
+node {
+stage (" code ") {
+git "https://github.com/suneelprojects/jenkins-project.git"
+}
+stage ("build"){
+def mavenHome = tool name: "maven3" , type: "maven"
+def mavenCMD = "${mavenHome}/bin/mvn"
+sh "${mavenCMD} clean package"
+}
+stage("Test") {
+withSonarQubeEnv('mysonar'){
+def mavenHome = tool name: "maven3" , type: "maven"
+def mavenCMD = "${mavenHome}/bin/mvn"
+sh "${mavenCMD} sonar:sonar"
+}
+}
+stage("Upload"){
+    nexusArtifactUploader artifacts: [[artifactId: 'suneel', classifier: '', file: 'target/suneel.war', type: 'war']], credentialsId: 'nexus', groupId: 'devops', nexusUrl: '52.66.37.1:8081/', nexusVersion: 'nexus3', protocol: 'http', repository: 'Hema.repo', version: '1.0-SNAPSHOT'
+}
+stage("Deploy"){
+    sshagent(['tomcat']) {
+    sh "scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/jenkins-project/target/suneel.war ec2-user@13.203.201.246:/opt/tomcat/webapps"
+}
+}
+}
